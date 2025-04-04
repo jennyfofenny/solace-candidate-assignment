@@ -2,9 +2,47 @@
 
 import { useEffect, useState } from "react";
 
+type Advocate = {
+  firstName: string;
+  lastName: string;
+  city: string;
+  degree: string;
+  specialties: string[];
+  yearsOfExperience: number;
+  phoneNumber: number;
+}
+
+const formatPhoneNumber = (phoneNumber: number) => {
+  const phoneNumberString = phoneNumber.toString();
+  return `(${phoneNumberString.slice(0, 3)}) ${phoneNumberString.slice(3, 6)}-${phoneNumberString.slice(6)}`;
+}
+
+const AdvocateRow = ({ advocate, index }: { advocate: Advocate, index: number }) => {
+  const { firstName, lastName, city, degree, specialties, yearsOfExperience, phoneNumber } = advocate;
+
+  return (
+    <tr key={`advocate-${index}`} className="even:bg-gray-200 odd:bg-white">
+      <td>{firstName} {lastName}{degree && `, ${degree}`}</td>
+      <td>{city}</td>
+      <td>
+        <div className="flex-wrap">
+          {specialties.map((s, i) => (
+            <div key={`specialty-${index}-${i}`}>{s}</div>
+          ))}
+        </div>
+      </td>
+      <td>{yearsOfExperience}</td>
+      <td>{formatPhoneNumber(phoneNumber)}</td>
+    </tr>
+  );
+}
+
 export default function Home() {
-  const [advocates, setAdvocates] = useState([]);
-  const [filteredAdvocates, setFilteredAdvocates] = useState([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [advocates, setAdvocates] = useState<Advocate[]>([]);
+  const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log("fetching advocates...");
@@ -12,80 +50,81 @@ export default function Home() {
       response.json().then((jsonResponse) => {
         setAdvocates(jsonResponse.data);
         setFilteredAdvocates(jsonResponse.data);
-      });
+      })
+      .catch((error) => setError(error.message))
+      .finally(() => setLoading(false));
     });
   }, []);
 
-  const onChange = (e) => {
-    const searchTerm = e.target.value;
-
-    document.getElementById("search-term").innerHTML = searchTerm;
-
-    console.log("filtering advocates...");
+  useEffect(() => {
+    if (loading) return;
     const filteredAdvocates = advocates.filter((advocate) => {
+      const { firstName, lastName, city, degree, specialties, yearsOfExperience, phoneNumber } = advocate;
+      const searchLower = searchTerm.toLowerCase();
+      const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
+      const fullNameLower = `${firstName} ${lastName}, ${degree}`.toLocaleLowerCase();
+
       return (
-        advocate.firstName.includes(searchTerm) ||
-        advocate.lastName.includes(searchTerm) ||
-        advocate.city.includes(searchTerm) ||
-        advocate.degree.includes(searchTerm) ||
-        advocate.specialties.includes(searchTerm) ||
-        advocate.yearsOfExperience.includes(searchTerm)
+        firstName?.toLowerCase()?.includes(searchLower) ||
+        lastName?.toLowerCase()?.includes(searchLower) ||
+        city?.toLowerCase().includes(searchLower) ||
+        degree?.toLowerCase().includes(searchLower) ||
+        phoneNumber?.toString()?.includes(searchTerm) ||
+        specialties?.some(s => s.toLowerCase().includes(searchLower)) ||
+        (!isNaN(Number(searchTerm)) && yearsOfExperience >= Number(searchTerm)) ||
+        formattedPhoneNumber?.includes(searchTerm) ||
+        fullNameLower?.includes(searchLower)
       );
     });
-
     setFilteredAdvocates(filteredAdvocates);
-  };
-
-  const onClick = () => {
-    console.log(advocates);
-    setFilteredAdvocates(advocates);
-  };
+  }, [searchTerm]);
 
   return (
-    <main style={{ margin: "24px" }}>
-      <h1>Solace Advocates</h1>
-      <br />
-      <br />
-      <div>
-        <p>Search</p>
-        <p>
-          Searching for: <span id="search-term"></span>
-        </p>
-        <input style={{ border: "1px solid black" }} onChange={onChange} />
-        <button onClick={onClick}>Reset Search</button>
-      </div>
-      <br />
-      <br />
-      <table>
-        <thead>
-          <th>First Name</th>
-          <th>Last Name</th>
-          <th>City</th>
-          <th>Degree</th>
-          <th>Specialties</th>
-          <th>Years of Experience</th>
-          <th>Phone Number</th>
-        </thead>
-        <tbody>
-          {filteredAdvocates.map((advocate) => {
-            return (
+    <main className="p-6">
+      <h1 className="mb-6 text-2xl">Solace Advocates</h1>
+
+      { loading && (
+        <p> Loading...</p>
+      )}
+      { !loading && error && (
+        <p className="text-red-500 font-bold">Error: {error}</p>
+      ) }
+      { !loading && !error && (
+        <>
+          <div className="flex mb-4 items-end">
+            <div className="flex flex-grow items-center">
+              <label htmlFor="search" className="mr-2 font-light">Search</label>
+              <input onChange={(e) => setSearchTerm(e.target.value)} placeholder="eg. name, specialty, city, ..." className="me-2 advocate-search" value={searchTerm} aria-label="Search" />
+              <button onClick={() => setSearchTerm("")} className="btn-secondary" aria-label="Reset Search">Reset Search</button>
+            </div>
+            <div className="whitespace-nowrap">
+              {filteredAdvocates.length} results
+            </div>
+          </div>
+
+          <table className="advocate-table">
+            <thead>
               <tr>
-                <td>{advocate.firstName}</td>
-                <td>{advocate.lastName}</td>
-                <td>{advocate.city}</td>
-                <td>{advocate.degree}</td>
-                <td>
-                  {advocate.specialties.map((s) => (
-                    <div>{s}</div>
-                  ))}
-                </td>
-                <td>{advocate.yearsOfExperience}</td>
-                <td>{advocate.phoneNumber}</td>
+                <th className="rounded-tl">Name</th>
+                <th>City</th>
+                <th>Specialties</th>
+                <th>Years of Experience</th>
+                <th className="rounded-tr">Phone Number</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {filteredAdvocates.map((advocate, index) => (
+                <AdvocateRow key={`advocate-${index}`} advocate={advocate} index={index} />
+              ))}
+              {filteredAdvocates.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-center">No advocates found</td>
+                </tr>
+                )}
+            </tbody>
+          </table>
+        </>
+      )}
     </main>
   );
 }
