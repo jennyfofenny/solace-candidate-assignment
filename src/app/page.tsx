@@ -43,6 +43,7 @@ export default function Home() {
   const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState<number>(0);
 
   useEffect(() => {
     console.log("fetching advocates...");
@@ -50,6 +51,7 @@ export default function Home() {
       response.json().then((jsonResponse) => {
         setAdvocates(jsonResponse.data);
         setFilteredAdvocates(jsonResponse.data);
+        setTotal(jsonResponse.total);
       })
       .catch((error) => setError(error.message))
       .finally(() => setLoading(false));
@@ -77,54 +79,63 @@ export default function Home() {
       );
     });
     setFilteredAdvocates(filteredAdvocates);
+    setTotal(filteredAdvocates.length);
   }, [searchTerm]);
+  
 
   return (
-    <main className="p-6">
-      <h1 className="mb-6 text-2xl">Solace Advocates</h1>
+    <main className="flex max-h-dvh">
+      <div className="flex flex-col h-full max-h-dvh">
+        <h1 className="mb-6 text-2xl">Advocates</h1>
 
-      { loading && (
-        <p> Loading...</p>
-      )}
-      { !loading && error && (
-        <p className="text-red-500 font-bold">Error: {error}</p>
-      ) }
-      { !loading && !error && (
-        <>
-          <div className="flex mb-4 items-end">
-            <div className="flex flex-grow items-center">
-              <label htmlFor="search" className="mr-2 font-light">Search</label>
-              <input onChange={(e) => setSearchTerm(e.target.value)} placeholder="eg. name, specialty, city, ..." className="me-2 advocate-search" value={searchTerm} aria-label="Search" />
-              <button onClick={() => setSearchTerm("")} className="btn-secondary" aria-label="Reset Search">Reset Search</button>
-            </div>
-            <div className="whitespace-nowrap">
-              {filteredAdvocates.length} results
-            </div>
-          </div>
+          { loading && (
+            <p> Loading...</p>
+          )}
+          { !loading && error && (
+            <p className="text-red-500 font-bold">Error: {error}</p>
+          ) }
+          { !loading && !error && (
+            <>
+            <div className="flex flex-col">
+              <div className="flex mb-4 items-end">
+                <div className="flex flex-grow items-center">
+                  <label htmlFor="search" className="mr-2 font-light">Search</label>
+                  <input onChange={(e) => setSearchTerm(e.target.value)} placeholder="eg. name, specialty, city, ..." className="me-2 advocate-search" value={searchTerm} aria-label="Search" />
+                  <button onClick={() => setSearchTerm("")} className="btn-secondary" aria-label="Reset Search">Reset Search</button>
+                </div>
+                <div className="whitespace-nowrap">
+                  {total} results
+                </div>
+              </div>
 
-          <table className="advocate-table">
-            <thead>
-              <tr>
-                <th className="rounded-tl">Name</th>
-                <th>City</th>
-                <th>Specialties</th>
-                <th>Years of Experience</th>
-                <th className="rounded-tr">Phone Number</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAdvocates.map((advocate, index) => (
-                <AdvocateRow key={`advocate-${index}`} advocate={advocate} index={index} />
-              ))}
-              {filteredAdvocates.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center">No advocates found</td>
-                </tr>
-                )}
-            </tbody>
-          </table>
+              <table className="advocate-table">
+                <thead>
+                  <tr>
+                    <th className="rounded-tl">Name</th>
+                    <th>City</th>
+                    <th>Specialties</th>
+                    <th>Years of Experience</th>
+                    <th className="rounded-tr">Phone Number</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAdvocates.map((advocate, index) => (
+                    <AdvocateRow key={`advocate-${index}`} advocate={advocate} index={index} />
+                  ))}
+                  {filteredAdvocates.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="text-center">No advocates found</td>
+                    </tr>
+                    )}
+                </tbody>
+              </table>
+        </div>
+        <div>
+          Pagination
+        </div>
         </>
-      )}
+          )}
+      </div>
     </main>
   );
 }

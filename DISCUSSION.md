@@ -25,3 +25,4 @@
 - Improve the loading message to a spinning svg in addition to message to make it seem more interactive/responsive
 - Add unit tests for frontend and backend functionality
 - Add dark mode color theme
+- Setup responsive columns
